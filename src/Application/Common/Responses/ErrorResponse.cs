@@ -3,7 +3,7 @@ using Application.Common.Interfaces.Application.Responses;
 
 namespace Application.Common.Responses
 {
-    public class RollbackTransactionErrorResponse<T> : BaseResponse<T>, IRollbackTransactionResponse, IErrorResponse where T : class
+    public class ErrorResponse<T> : BaseResponse<T>, IRollbackTransactionResponse, IErrorResponse where T : class
     {
         public string StackTrace { get; set; }
         public string ErrorMessage { get; set; }

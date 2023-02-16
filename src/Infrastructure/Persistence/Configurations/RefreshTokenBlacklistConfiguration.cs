@@ -10,7 +10,6 @@ namespace Infrastructure.Persistence.Configurations
         {
             builder.ToTable("RefreshTokenBlacklist");
             builder.HasKey(x => x.Id);
-            builder.Ignore(x => x.DomainEvents);
             builder.Property(x => x.RefreshToken).IsRequired();
             builder.HasIndex(x => x.RefreshToken).IsUnique();
         }

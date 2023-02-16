@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Application.Common.Interfaces.Application.Responses;
 using Application.Common.Interfaces.Application.Services;
 using Application.Common.Interfaces.Infrastructure.Repositories;
 using Application.Common.Interfaces.Infrastructure.Services;
+using Application.Common.Interfaces.Infrastructure.UnitOfWork;
 using Application.Common.Responses;
 using Ardalis.GuardClauses;
 using Domain.Entities;
@@ -26,22 +28,19 @@ namespace Application.Users.Commands
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-        private readonly IJwtGenerator _jwtGenerator;
-        private readonly IRefreshTokenGenerator _refreshTokenGenerator;
-        private readonly IRepository<UserRefreshToken> _refreshTokenRepository;
+        private readonly ITokenHelper _tokenHelper;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICookieHelper _cookieHelper;
 
         public RegistrationHandler(
             UserManager<User> userManager,
-            SignInManager<User> signInManager,
-            IJwtGenerator jwtGenerator,
-            IRefreshTokenGenerator refreshTokenGenerator,
-            IRepository<UserRefreshToken> refreshTokenRepository)
+            SignInManager<User> signInManager, ITokenHelper tokenHelper, IUnitOfWork unitOfWork, ICookieHelper cookieHelper)
         {
+            _tokenHelper = Guard.Against.Null(tokenHelper, nameof(tokenHelper));
+            _unitOfWork = Guard.Against.Null(unitOfWork, nameof(unitOfWork));
+            _cookieHelper = Guard.Against.Null(cookieHelper, nameof(cookieHelper));
             _userManager = Guard.Against.Null(userManager, nameof(userManager));
             _signInManager = Guard.Against.Null(signInManager, nameof(signInManager));
-            _jwtGenerator = Guard.Against.Null(jwtGenerator, nameof(jwtGenerator));
-            _refreshTokenGenerator = Guard.Against.Null(refreshTokenGenerator, nameof(refreshTokenGenerator));
-            _refreshTokenRepository = Guard.Against.Null(refreshTokenRepository, nameof(refreshTokenRepository));
         }
 
         public async Task<IBaseResponse<Token>> Handle(RegistrationCommand request, CancellationToken ct)
@@ -56,7 +55,7 @@ namespace Application.Users.Commands
 
             if (!result.Succeeded)
             {
-                return new RollbackTransactionErrorResponse<Token>
+                return new ErrorResponse<Token>
                 {
                     StatusCode = 400,
                     Errors = new Dictionary<string, List<string>>{{"CreateError", result.Errors.Select(x => x.Description.ToString()).ToList()}},
@@ -64,24 +63,19 @@ namespace Application.Users.Commands
             }
 
             await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+            await _tokenHelper.SetRefreshToken(user);
 
-            var refreshTokenString = await _refreshTokenGenerator.Generate(user);
+            user.CreationDate = DateTime.Now.ToUniversalTime();
+            user.EmailConfirmed = true;
             
-            var userRefreshToken = _refreshTokenRepository.Add(new UserRefreshToken {RefreshToken = refreshTokenString, User = user});
+            await _unitOfWork.Commit(ct);
+            
+            _cookieHelper.SetRefreshTokenInCookie(user.RefreshToken);
 
-            if (userRefreshToken.IsTransient())
-            {
-                return new RollbackTransactionErrorResponse<Token>
-                {
-                    StatusCode = 400,
-                    Errors = new Dictionary<string, List<string>>{{"CreateError", new List<string> {"Error occurred while trying to create new user"}}},
-                };
-            }
-            
             return new BaseResponse<Token>
             {
                 StatusCode = 201,
-                Data = new Token {AccessToken = _jwtGenerator.CreateAccessToken(user.Id), RefreshToken = refreshTokenString}
+                Data = null
             };
         }
     }

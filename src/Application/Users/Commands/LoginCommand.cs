@@ -4,13 +4,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Common.Interfaces.Application.Responses;
 using Application.Common.Interfaces.Application.Services;
-using Application.Common.Interfaces.Infrastructure.Repositories;
-using Application.Common.Interfaces.Infrastructure.Services;
+using Application.Common.Interfaces.Infrastructure.UnitOfWork;
 using Application.Common.Responses;
 using Ardalis.GuardClauses;
 using Domain.Entities;
 using Domain.ValueObjects;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 
 namespace Application.Users.Commands
@@ -25,22 +25,20 @@ namespace Application.Users.Commands
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-        private readonly IJwtGenerator _jwtGenerator;
-        private readonly IRepository<UserRefreshToken> _refreshTokenRepository;
-        private readonly IRefreshTokenGenerator _refreshTokenGenerator;
+        private readonly ICookieHelper _cookieHelper;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ITokenHelper _tokenHelper;
 
         public LoginHandler(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
-            IJwtGenerator jwtGenerator,
-            IRepository<UserRefreshToken> refreshTokenRepository,
-            IRefreshTokenGenerator refreshTokenGenerator)
+            IUnitOfWork unitOfWork, ITokenHelper tokenHelper, ICookieHelper cookieHelper)
         {
+            _unitOfWork = Guard.Against.Null(unitOfWork, nameof(unitOfWork));
+            _tokenHelper = Guard.Against.Null(tokenHelper, nameof(tokenHelper));
+            _cookieHelper = Guard.Against.Null(cookieHelper, nameof(cookieHelper));
             _userManager = Guard.Against.Null(userManager, nameof(userManager));
             _signInManager = Guard.Against.Null(signInManager, nameof(signInManager));
-            _jwtGenerator = Guard.Against.Null(jwtGenerator, nameof(jwtGenerator));
-            _refreshTokenRepository = Guard.Against.Null(refreshTokenRepository, nameof(refreshTokenRepository));
-            _refreshTokenGenerator = Guard.Against.Null(refreshTokenGenerator, nameof(refreshTokenGenerator));
         }
 
         public async Task<IBaseResponse<Token>> Handle(LoginCommand request, CancellationToken ct)
@@ -48,7 +46,7 @@ namespace Application.Users.Commands
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user.IsTransient())
             {
-                return new RollbackTransactionErrorResponse<Token>
+                return new ErrorResponse<Token>
                 {
                     StatusCode = 401,
                     Errors = new Dictionary<string, List<string>>{{"LoginError", new List<string> {"Access denied"}}},
@@ -59,26 +57,20 @@ namespace Application.Users.Commands
 
             if (result.Succeeded)
             {
-                var refreshTokenString = await _refreshTokenGenerator.Generate(user);
-                
-                var userRefreshToken = await _refreshTokenRepository.FindOneBy(x => x.UserId == user.Id);
-                userRefreshToken.RefreshToken = refreshTokenString;
-                
-                if (!userRefreshToken.IsTransient())
-                    return new BaseResponse<Token>
-                    {
-                        StatusCode = 200,
-                        Data = new Token {AccessToken = _jwtGenerator.CreateAccessToken(user.Id), RefreshToken = refreshTokenString}
-                    };
-                
-                return new RollbackTransactionErrorResponse<Token>
+                await _tokenHelper.SetRefreshToken(user);
+                user.LastLoginDate = DateTime.Now.ToUniversalTime();
+
+                await _unitOfWork.Commit(ct);
+
+                _cookieHelper.SetRefreshTokenInCookie(user.RefreshToken);
+
+                return new BaseResponse<Token>
                 {
-                    StatusCode = 400,
-                    Errors = new Dictionary<string, List<string>>{{"LoginError", new List<string>() {"Error occurred while trying to create refresh token"}}},
+                    StatusCode = 200,
                 };
             }
 
-            return new RollbackTransactionErrorResponse<Token>
+            return new ErrorResponse<Token>
             {
                 StatusCode = 401,
                 Errors = new Dictionary<string, List<string>>{{"LoginError", new List<string> {"Access denied"}}},

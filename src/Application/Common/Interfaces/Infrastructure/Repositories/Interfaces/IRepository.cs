@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Domain.Entities;
 
-namespace Application.Common.Interfaces.Infrastructure.Repositories
+namespace Application.Common.Interfaces.Infrastructure.Repositories.Interfaces
 {
     public interface IRepository<TEntity> where TEntity : Entity
     {

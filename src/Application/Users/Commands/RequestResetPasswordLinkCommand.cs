@@ -33,7 +33,7 @@ namespace Application.Users.Commands
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user.IsTransient())
             {
-                return new RollbackTransactionErrorResponse<string>
+                return new ErrorResponse<string>
                 {
                     StatusCode = 404,
                     Errors = new Dictionary<string, List<string>>{{"ForgotPassword", new List<string> {"Not Found"}}},

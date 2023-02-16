@@ -1,15 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net5.0</TargetFramework>
-        <LangVersion>9</LangVersion>
+        <TargetFramework>net6.0</TargetFramework>
+        <LangVersion>10</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Common\Exceptions" />
-      <Folder Include="Common\Mappings" />
-      <Folder Include="Common\Models" />
-      <Folder Include="Users\Queries" />
+      <Folder Include="Common\Interfaces\Infrastructure\Repositories" />
     </ItemGroup>
 
     <ItemGroup>

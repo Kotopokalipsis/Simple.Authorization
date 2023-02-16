@@ -11,9 +11,6 @@ namespace Infrastructure.Services.JwtGenerator
 {
     public class JwtGenerator : IJwtGenerator
     {
-        private readonly DateTime _accessTokenExpires = DateTime.Now.AddHours(1);
-        private readonly DateTime _refreshTokenExpires = DateTime.Now.AddSeconds(30);
-
         private readonly SymmetricSecurityKey _accessKey;
         private readonly SymmetricSecurityKey _refreshKey;
 
@@ -22,15 +19,18 @@ namespace Infrastructure.Services.JwtGenerator
             _accessKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Identity:AccessApiKey"]));
             _refreshKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Identity:RefreshApiKey"]));
         }
+        
+        public DateTime AccessTokenExpires() => DateTime.Now.AddMinutes(5).ToUniversalTime();
+        public DateTime RefreshTokenExpires() => DateTime.Now.AddDays(7).ToUniversalTime();
 
         public string CreateAccessToken(Guid id)
         {
-            return CreateToken(id, _accessTokenExpires, _accessKey);
+            return CreateToken(id, AccessTokenExpires(), _accessKey);
         }
 
         public string CreateRefreshToken(Guid id)
         {
-            return CreateToken(id, _refreshTokenExpires, _refreshKey);
+            return CreateToken(id, RefreshTokenExpires(), _refreshKey);
         }
 
         private static string CreateToken(Guid id, DateTime expires, SecurityKey key)

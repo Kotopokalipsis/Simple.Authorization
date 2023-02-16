@@ -14,7 +14,7 @@ namespace Web.Filters
         {
             if (context.ActionArguments.Any(v => v.Value == null))
             {
-                var response = new RollbackTransactionErrorResponse<Dictionary<string, List<string>>>()
+                var response = new ErrorResponse<Dictionary<string, List<string>>>()
                 {
                     Errors = new Dictionary<string, List<string>>{{"ValidationError", new List<string> {"Bad request"}}},
                     StatusCode = 400,
@@ -32,7 +32,7 @@ namespace Web.Filters
                     .ToDictionary(x => x.Key, 
                         y => y.Value.Errors.Select(x => x.ErrorMessage).ToList());
                 
-                var response = new RollbackTransactionErrorResponse<Dictionary<string, List<string>>>()
+                var response = new ErrorResponse<Dictionary<string, List<string>>>()
                 {
                     Errors = errors,
                     StatusCode = 400,

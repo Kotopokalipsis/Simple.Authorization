@@ -21,7 +21,7 @@ namespace Web.Filters
         //TODO: add logger 
         public Task OnExceptionAsync(ExceptionContext context)
         {
-            context.Result = new ObjectResult(new CommitTransactionErrorResponse<string>
+            context.Result = new ObjectResult(new ErrorResponse<string>
             {
                 StackTrace = _env.IsDevelopment() ? context.Exception.StackTrace : null,
                 StatusCode = 500,

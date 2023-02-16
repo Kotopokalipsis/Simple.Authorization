@@ -1,9 +1,11 @@
 ﻿using System.Threading.Tasks;
 using Application.Users.Commands;
+using Application.Users.Queries;
 using Ardalis.GuardClauses;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Web.Attributes;
 
 namespace Web.Controllers
 {
@@ -34,10 +36,20 @@ namespace Web.Controllers
             return StatusCode(result.StatusCode, result);
         }
         
-        [HttpPost("token/refresh")]
-        public async Task<ActionResult> RefreshToken(RefreshTokenCommand command)
+        [HttpGet("token/refresh")]
+        [RefreshTokenRequirement]
+        public async Task<ActionResult> GetNewRefreshToken()
         {
-            var result = await _mediator.Send(command);
+            var result = await _mediator.Send(new NewRefreshTokenQuery());
+            
+            return StatusCode(result.StatusCode, result);
+        }
+        
+        [HttpGet("token/access")]
+        [RefreshTokenRequirement]
+        public async Task<ActionResult> GetAccessToken()
+        {
+            var result = await _mediator.Send(new AccessTokenQuery());
             
             return StatusCode(result.StatusCode, result);
         }

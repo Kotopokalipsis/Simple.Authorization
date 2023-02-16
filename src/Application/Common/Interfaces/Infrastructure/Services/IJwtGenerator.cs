@@ -4,7 +4,9 @@ namespace Application.Common.Interfaces.Infrastructure.Services
 {
     public interface IJwtGenerator
     {
-        string CreateAccessToken(Guid id);
-        string CreateRefreshToken(Guid id);
+        public DateTime AccessTokenExpires();
+        public DateTime RefreshTokenExpires();
+        public string CreateAccessToken(Guid id);
+        public string CreateRefreshToken(Guid id);
     }
 }

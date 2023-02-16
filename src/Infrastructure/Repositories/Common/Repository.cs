@@ -2,24 +2,19 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using Application.Common.Interfaces.Infrastructure.Repositories;
+using Application.Common.Interfaces.Infrastructure.Repositories.Interfaces;
 using Domain.Entities;
-using Domain.Interfaces;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Repositories
+namespace Infrastructure.Repositories.Common
 {
     public class Repository<TEntity> : IRepository<TEntity> where TEntity : Entity
     {
-        private readonly ApplicationContext _context;
-        public IUnitOfWork UnitOfWork => _context;
-
         private readonly DbSet<TEntity> _dbSet;
 
         public Repository(ApplicationContext context)
         {
-            _context = context;
             _dbSet = context.Set<TEntity>();
         }
         

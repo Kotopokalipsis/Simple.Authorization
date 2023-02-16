@@ -1,15 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 
 namespace Domain.Entities
 {
     public class User : IdentityUser<Guid>
     {
-        private int? _requestedHashCode;
-        private List<INotification> _domainEvents;
-        public UserRefreshToken UserRefreshToken { get; set; }
+        public string RefreshToken { get; set; }
+        public DateTime RefreshTokenExpirationTime { get; set; }
+        
+        public string AccessToken { get; set; }
+        
+        public DateTime CreationDate { get; set; }
+        public DateTime? LastLoginDate { get; set; }
+        
+        public bool IsDeleted { get; set; }
         
         public bool IsTransient()
         {
@@ -35,15 +39,6 @@ namespace Domain.Entities
             return item.Id == Id;
         }
 
-        public override int GetHashCode()
-        {
-            if (IsTransient()) return base.GetHashCode();
-            
-            _requestedHashCode ??= Id.GetHashCode() ^ 31;
-            return _requestedHashCode.Value;
-
-        }
-        
         public static bool operator == (User left, User right)
         {
             return left?.Equals(right) ?? Equals(right, null);
