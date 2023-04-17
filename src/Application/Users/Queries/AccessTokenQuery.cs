@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Common.Interfaces.Application.Responses;
@@ -14,10 +15,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Application.Users.Queries;
 
-public record AccessTokenQuery : IRequest<IBaseResponse<Token>>
-{
-    
-}
+public record AccessTokenQuery : IRequest<IBaseResponse<Token>>;
 
 public class AccessTokenHandler : IRequestHandler<AccessTokenQuery, IBaseResponse<Token>>
 {
@@ -45,6 +43,11 @@ public class AccessTokenHandler : IRequestHandler<AccessTokenQuery, IBaseRespons
     {
         var refreshToken = _cookieHelper.GetRefreshTokenFromCookie();
 
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return GetValidationErrorResponse();
+        }
+        
         var user = await _tokenHelper.GetUserByRefreshToken(refreshToken);
 
         if (user == null)
@@ -55,13 +58,12 @@ public class AccessTokenHandler : IRequestHandler<AccessTokenQuery, IBaseRespons
             return GetValidationErrorResponse();
         }
 
-        _tokenHelper.SetAccessToken(user);
-        await _unitOfWork.Commit(cancellationToken);
+        var accessToken = await _tokenHelper.GenerateNewAccessToken(user);
 
         return new BaseResponse<Token>
         {
             StatusCode = 200,
-            Data = new Token {AccessToken = user.AccessToken}
+            Data = new Token {AccessToken = accessToken}
         };
     }
     

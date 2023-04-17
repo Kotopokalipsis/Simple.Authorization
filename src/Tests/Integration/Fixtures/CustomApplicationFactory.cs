@@ -22,15 +22,15 @@ namespace Integration.Fixtures
                         .ConfigureAppConfiguration(conf =>
                         {
                             var projectDir = Directory.GetCurrentDirectory();
-                            var configPath = Path.Combine(projectDir, "appsettings.Testing.json");
+                            var configPath = Path.Combine(projectDir, "appsettings.IntegrationTests.json");
 
                             conf.AddJsonFile(configPath);
                         })
                         .ConfigureServices((context, collection) =>
                         {
                             collection.RemoveAll(typeof(ApplicationContext));
-                            collection.AddDbContext<ApplicationContext>(opt =>
-                                opt.UseSqlServer(context.Configuration.GetConnectionString("IdentityDB")));
+                            collection.AddDbContext<ApplicationContext>(options =>
+                                options.UseNpgsql(context.Configuration.GetConnectionString("IdentityIntegrationTests")));
                             
                             var sp = collection.BuildServiceProvider();
                             

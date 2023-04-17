@@ -5,11 +5,7 @@ namespace Domain.Entities
 {
     public class User : IdentityUser<Guid>
     {
-        public string RefreshToken { get; set; }
         public DateTime RefreshTokenExpirationTime { get; set; }
-        
-        public string AccessToken { get; set; }
-        
         public DateTime CreationDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
         

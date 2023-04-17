@@ -6,7 +6,7 @@ namespace Application.Common.Interfaces.Infrastructure.Services
 {
     public interface IJwtReader
     {
-        IEnumerable<Claim> GetClaimFromToken(string token);
+        IEnumerable<Claim> GetClaimsFromToken(string token);
         DateTime GetValidTo(string token);
     }
 }

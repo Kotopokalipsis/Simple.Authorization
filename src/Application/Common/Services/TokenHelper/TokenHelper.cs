@@ -25,12 +25,7 @@ public class TokenHelper : ITokenHelper
         _userManager = userManager;
     }
 
-    public void SetAccessToken(User user)
-    {
-        user.AccessToken = _jwtGenerator.CreateAccessToken(user.Id);
-    }
-    
-    public async Task SetRefreshToken(User user)
+    public async Task<string> GenerateNewRefreshToken(User user)
     {
         string refreshTokenString;
             
@@ -43,8 +38,14 @@ public class TokenHelper : ITokenHelper
                 break;
         }
         
-        user.RefreshToken = refreshTokenString;
-        user.RefreshTokenExpirationTime = _jwtGenerator.RefreshTokenExpires();
+        user.RefreshTokenExpirationTime = _jwtGenerator.RefreshTokenExpires().ToUniversalTime();
+        
+        return refreshTokenString;
+    }
+    
+    public async Task<string> GenerateNewAccessToken(User user)
+    {
+        return _jwtGenerator.CreateAccessToken(user.Id);
     }
 
     [ItemCanBeNull]
@@ -56,7 +57,7 @@ public class TokenHelper : ITokenHelper
 
         if (blacklist != null) return null;
 
-        var claims = _jwtReader.GetClaimFromToken(refreshToken);
+        var claims = _jwtReader.GetClaimsFromToken(refreshToken);
 
         var user = 
             await _userManager.FindByIdAsync(
@@ -68,6 +69,6 @@ public class TokenHelper : ITokenHelper
 
         if (user == null) return null;
 
-        return DateTime.Now < user.RefreshTokenExpirationTime ? user : null;
+        return DateTime.Now.ToUniversalTime() < user.RefreshTokenExpirationTime ? user : null;
     }
 }

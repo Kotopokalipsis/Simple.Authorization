@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Common.Interfaces.Application.Responses;
@@ -10,52 +11,56 @@ using Domain.Entities;
 using Domain.ValueObjects;
 using MediatR;
 
-namespace Application.Users.Queries
+namespace Application.Users.Queries;
+
+public record NewRefreshTokenQuery : IRequest<IBaseResponse<Token>>;
+
+public class NewRefreshTokenHandler : IRequestHandler<NewRefreshTokenQuery, IBaseResponse<Token>>
 {
-    public record NewRefreshTokenQuery : IRequest<IBaseResponse<Token>>
+    private readonly ITokenHelper _tokenHelper;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICookieHelper _cookieHelper;
+
+    public NewRefreshTokenHandler(ITokenHelper tokenHelper, IUnitOfWork unitOfWork, ICookieHelper cookieHelper)
     {
+        _tokenHelper = Guard.Against.Null(tokenHelper, nameof(tokenHelper));
+        _unitOfWork = Guard.Against.Null(unitOfWork, nameof(unitOfWork));
+        _cookieHelper = Guard.Against.Null(cookieHelper, nameof(cookieHelper));
     }
 
-    public class NewRefreshTokenHandler : IRequestHandler<NewRefreshTokenQuery, IBaseResponse<Token>>
+    public async Task<IBaseResponse<Token>> Handle(NewRefreshTokenQuery request, CancellationToken ct)
     {
-        private readonly ITokenHelper _tokenHelper;
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly ICookieHelper _cookieHelper;
+        var oldRefreshToken = _cookieHelper.GetRefreshTokenFromCookie();
 
-        public NewRefreshTokenHandler(ITokenHelper tokenHelper, IUnitOfWork unitOfWork, ICookieHelper cookieHelper)
+        if (string.IsNullOrEmpty(oldRefreshToken))
         {
-            _tokenHelper = Guard.Against.Null(tokenHelper, nameof(tokenHelper));
-            _unitOfWork = Guard.Against.Null(unitOfWork, nameof(unitOfWork));
-            _cookieHelper = Guard.Against.Null(cookieHelper, nameof(cookieHelper));
+            return GetValidationErrorResponse();
         }
 
-        public async Task<IBaseResponse<Token>> Handle(NewRefreshTokenQuery request, CancellationToken ct)
+        var user = await _tokenHelper.GetUserByRefreshToken(oldRefreshToken);
+        
+        _unitOfWork.RefreshTokenBlacklistRepository.Add(new RefreshTokenBlacklist { RefreshToken = oldRefreshToken });
+        await _unitOfWork.Commit(ct);
+        
+        if (user == null) return GetValidationErrorResponse();
+
+        var newRefreshToken = await _tokenHelper.GenerateNewRefreshToken(user);
+        
+        user.RefreshTokenExpirationTime = DateTime.Now.ToUniversalTime();
+        await _unitOfWork.Commit(ct);
+        
+        _cookieHelper.SetRefreshTokenInCookie(newRefreshToken);
+
+        return new BaseResponse<Token>
         {
-            var refreshToken = _cookieHelper.GetRefreshTokenFromCookie();
-
-            _unitOfWork.RefreshTokenBlacklistRepository.Add(new RefreshTokenBlacklist { RefreshToken = refreshToken });
-            await _unitOfWork.Commit(ct);
-            
-            var user = await _tokenHelper.GetUserByRefreshToken(refreshToken);
-            
-            if (user == null) return GetValidationErrorResponse();
-
-            await _tokenHelper.SetRefreshToken(user);
-            await _unitOfWork.Commit(ct);
-            
-            _cookieHelper.SetRefreshTokenInCookie(user.RefreshToken);
-
-            return new BaseResponse<Token>
-            {
-                StatusCode = 200,
-                Data = null
-            };
-        }
-
-        private static ErrorResponse<Token> GetValidationErrorResponse() => new()
-        {
-            StatusCode = 400,
-            Errors = new Dictionary<string, List<string>>{{"ValidationError", new List<string> {"Refresh token not valid"}}},
+            StatusCode = 200,
+            Data = null
         };
     }
+
+    private static ErrorResponse<Token> GetValidationErrorResponse() => new()
+    {
+        StatusCode = 400,
+        Errors = new Dictionary<string, List<string>>{{"ValidationError", new List<string> {"Refresh token not valid"}}},
+    };
 }

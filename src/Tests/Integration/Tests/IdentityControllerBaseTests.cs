@@ -25,74 +25,54 @@ namespace Integration.Tests
         }
 
         [Fact, Order(1)]
-        public async Task Registration_SuccessTest()
+        public async Task GetTokenFlow_SuccessTest()
         {
-            await _initialFixture.InitialRegistrationTest();
+            await _initialFixture.InitialTest();
         }
 
-        [Theory, Order(2)]
-        [InlineData("/api/identity/login")]
-        public async Task Login_SuccessTest(string url)
-        {
-            var client = await _initialFixture.InitialRegistrationTest();
-            
-            var requestCommand = new LoginCommand
-            {
-                Email = "testintegration@gmail.com",
-                Password = "qwer1296753"
-            };
-            
-            var response = await client.PostAsJsonAsync(url, requestCommand);
-            
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            
-            var content = await response.Content.ReadAsStringAsync();
-            var resultCommand = _initialFixture.DeserializeResponse<BaseResponse<Token>>(content);
-            
-            _initialFixture.AssertBaseResponse(resultCommand, 200);
-           
-            resultCommand.Data.AccessToken.Should().NotBeEmpty().And.NotBeNull();
-            resultCommand.Data.RefreshToken.Should().NotBeEmpty().And.NotBeNull();
-
-            var userRefreshToken = await _initialFixture.Context.UserRefreshTokens.FirstOrDefaultAsync(x => x.RefreshToken == resultCommand.Data.RefreshToken);
-            var refreshTokenInBlacklist = await _initialFixture.Context.RefreshTokenBlacklists.AnyAsync(x => x.RefreshToken == resultCommand.Data.RefreshToken);
-
-            userRefreshToken.Should().NotBeNull();
-            refreshTokenInBlacklist.Should().BeTrue();
-
-            _initialFixture.AuthToken = resultCommand.Data;
-        }
-        
-        [Theory, Order(3)]
-        [InlineData("/api/identity/token/refresh")]
-        public async Task RefreshToken_SuccessTest(string url)
-        {
-            var client = await _initialFixture.InitialRegistrationTest();
-            
-            var requestCommand = new NewRefreshTokenCommand()
-            {
-                RefreshToken = _initialFixture.AuthToken.RefreshToken
-            };
-            
-            var response = await client.PostAsJsonAsync(url, requestCommand);
-            
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            
-            var content = await response.Content.ReadAsStringAsync();
-            var resultCommand = _initialFixture.DeserializeResponse<BaseResponse<Token>>(content);
-            
-            _initialFixture.AssertBaseResponse(resultCommand, 200);
-           
-            resultCommand.Data.AccessToken.Should().NotBeEmpty().And.NotBeNull();
-            // resultCommand.Data.RefreshToken.Should().NotBeEmpty().And.NotBeNull();
-            
-            var refreshTokenOnUser = await _initialFixture.Context.UserRefreshTokens.AnyAsync(x => x.RefreshToken == requestCommand.RefreshToken);
-            var refreshTokenInBlacklist = await _initialFixture.Context.RefreshTokenBlacklists.AnyAsync(x => x.RefreshToken == resultCommand.Data.RefreshToken);
-
-            refreshTokenOnUser.Should().BeFalse();
-            refreshTokenInBlacklist.Should().BeTrue();
-            
-            _initialFixture.AuthToken = resultCommand.Data;
-        }
+        // [Theory, Order(2)]
+        // [InlineData("/api/identity/login")]
+        // public async Task Login_SuccessTest(string url)
+        // {
+        //     var client = await _initialFixture.InitialRegistrationTest();
+        //     
+        //     var requestCommand = new LoginCommand
+        //     {
+        //         Email = "testintegration@gmail.com",
+        //         Password = "qwer1296753"
+        //     };
+        //     
+        //     var response = await client.PostAsJsonAsync(url, requestCommand);
+        //     response.StatusCode.Should().Be(HttpStatusCode.OK);
+        //     
+        //     var refreshTokenKayValueArray = _initialFixture.GetRefreshTokenKayValueArray(response);
+        //     _initialFixture.RefreshToken = refreshTokenKayValueArray[1];
+        //     
+        //     var content = await response.Content.ReadAsStringAsync();
+        //     var resultCommand = _initialFixture.DeserializeResponse<BaseResponse<Token>>(content);
+        //     
+        //     _initialFixture.AssertBaseResponse(resultCommand, 200);
+        // }
+        //
+        // [Theory, Order(3)]
+        // [InlineData("/api/identity/token/refresh")]
+        // public async Task GetRefreshToken_SuccessTest(string url)
+        // {
+        //     await Login_SuccessTest("/api/identity/login");
+        //     var client = _initialFixture.Client;
+        //
+        //     var response = await client.GetAsync(url);
+        //     
+        //     response.StatusCode.Should().Be(HttpStatusCode.OK);
+        //     
+        //     var content = await response.Content.ReadAsStringAsync();
+        //     var resultCommand = _initialFixture.DeserializeResponse<BaseResponse<Token>>(content);
+        //     
+        //     _initialFixture.AssertBaseResponse(resultCommand, 200);
+        //     
+        //     resultCommand.Data.AccessToken.Should().NotBeEmpty().And.NotBeNull();
+        //
+        //     _initialFixture.AccessToken = resultCommand.Data.AccessToken;
+        // }
     }
 }

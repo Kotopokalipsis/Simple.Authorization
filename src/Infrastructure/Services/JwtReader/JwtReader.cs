@@ -20,7 +20,7 @@ namespace Infrastructure.Services.JwtReader
             return _handler.ReadJwtToken(token).ValidTo;
         }
         
-        public IEnumerable<Claim> GetClaimFromToken(string token)
+        public IEnumerable<Claim> GetClaimsFromToken(string token)
         {
             var handler = new JwtSecurityTokenHandler();
             var jwtSecurityToken = handler.ReadJwtToken(token);

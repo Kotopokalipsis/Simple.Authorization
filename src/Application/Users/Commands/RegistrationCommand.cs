@@ -62,15 +62,10 @@ namespace Application.Users.Commands
                 };
             }
 
-            await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
-            await _tokenHelper.SetRefreshToken(user);
-
             user.CreationDate = DateTime.Now.ToUniversalTime();
             user.EmailConfirmed = true;
             
             await _unitOfWork.Commit(ct);
-            
-            _cookieHelper.SetRefreshTokenInCookie(user.RefreshToken);
 
             return new BaseResponse<Token>
             {
