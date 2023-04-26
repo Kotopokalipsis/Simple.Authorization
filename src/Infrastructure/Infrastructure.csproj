@@ -2,12 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
-      <UserSecretsId>32378d0c-b967-44c6-9b86-e8023937aed8</UserSecretsId>
-      <LangVersion>10</LangVersion>
-  </PropertyGroup>
+        <UserSecretsId>32378d0c-b967-44c6-9b86-e8023937aed8</UserSecretsId>
+        <LangVersion>10</LangVersion>
+        <OutputType>library</OutputType>
+    </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Files" />
       <Folder Include="Migrations" />
     </ItemGroup>
 

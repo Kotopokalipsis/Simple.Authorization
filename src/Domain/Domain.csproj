@@ -3,13 +3,8 @@
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <LangVersion>10</LangVersion>
+        <OutputType>library</OutputType>
     </PropertyGroup>
-
-    <ItemGroup>
-      <Folder Include="Common" />
-      <Folder Include="Enums" />
-      <Folder Include="Exceptions" />
-    </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="MediatR" Version="9.0.0" />
